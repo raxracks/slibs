@@ -40,6 +40,26 @@
       void *: "%p",                                                            \
       default: "Unknown")
 
+#define sl_stringify(x) #x
+
+// Helper macros to count the number of arguments
+#define NARG_(...) NARG_##__VA_ARGS__
+#define NARG(...) NARG_(__VA_ARGS__, RSEQ_N())
+#define RSEQ_N() 5, 4, 3, 2, 1, 0
+#define ENUM_NAMES_N(values, n) ENUM_NAMES_##n values
+#define ENUM_NAMES_(values, n) ENUM_NAMES_N(values, n)
+#define ENUM_NAMES(...) ENUM_NAMES_(__VA_ARGS__, NARG(__VA_ARGS__))
+#define ENUM_NAMES_0
+#define ENUM_NAMES_1(x) #x
+#define ENUM_NAMES_2(x, ...) #x, ENUM_NAMES_1(__VA_ARGS__)
+#define ENUM_NAMES_3(x, ...) #x, ENUM_NAMES_2(__VA_ARGS__)
+#define ENUM_NAMES_4(x, ...) #x, ENUM_NAMES_3(__VA_ARGS__)
+#define ENUM_NAMES_5(x, ...) #x, ENUM_NAMES_4(__VA_ARGS__)
+
+#define sl_named_enums(enum_name, ...)                                         \
+  enum enum_name { __VA_ARGS__, enum_name##_COUNT };                           \
+  const char *enum_name##EnumNames[] = {ENUM_NAMES(__VA_ARGS__)};
+
 #pragma endregion
 #pragma region Vector
 
@@ -164,6 +184,24 @@ typedef sl_vec(char) sl_string;
     scope;                                                                     \
     sl_ptr_release(smart_ptr);                                                 \
   });
+
+void sl_read_file(const char *filename, sl_string *buffer) {
+  FILE *file = fopen(filename, "r");
+  if (!file) {
+    fprintf(stderr, "Error: could not open file %s\n", filename);
+    exit(1);
+  }
+
+  fseek(file, 0, SEEK_END);
+  size_t file_size = ftell(file);
+  fseek(file, 0, SEEK_SET);
+
+  for (size_t i = 0; i < file_size; i++) {
+    sl_vec_push(*buffer, fgetc(file));
+  }
+
+  fclose(file);
+}
 
 #pragma endregion
 
